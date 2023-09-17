@@ -2,6 +2,7 @@ import requests
 import datetime
 import pprint
 import sqlite3
+import json
 
 link = "https://api.nasa.gov/neo/rest/v1/feed?start_date=LAST_WEEK&end_date=&api_key=Gt87ibmZefPpnhl8gfz5gWWiTuftebq6IgJBFNdQ"
 
@@ -25,10 +26,8 @@ cursor.executescript('''
     DROP TABLE IF EXISTS neo;
 
     CREATE TABLE neo (
-                     id TEXT PRIMARY KEY,
-                     name TEXT,
-                     potentially_hazardous BOOLEAN
-                     sentry_object BOOLEAN
-                     close 
+                     id varchar(3)
+                     data json
     )
 ''')
+
