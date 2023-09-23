@@ -43,9 +43,13 @@ df = pd.read_sql_query('''
                        select json_extract(data, "$.name") as name,
                        json_extract(data, "$.id") as ID,
                        json_extract(data, "$.is_potentially_hazardous_asteroid") as potentially_hazardous,
-                       json_extract(data, "$.close_approach_date_full") as close_approach_date
+                       json_extract((json_extract(data, "$.close_approach_data"), "$.close_approach_date_full") as close_approach_date
                        from neo
-                       order by close_approach_date
-                       limit 3;''', conn)
+                       order by close_approach_date;
+                       ''', conn)
+
+df["potentially_hazardous"] = df["potentially_hazardous"].astype(bool)
+
+df_hazardous = df[df["potentially_hazardous"]==True]
 
 df.to_clipboard()
