@@ -47,5 +47,10 @@ for date, neo_list in neo_data.items():
             neo['is_potentially_hazardous_asteroid']
         ))
 
+"""
+I was about to say use f-strings here. But don't. This is an example of letting the SQL engine handle 
+wild strings. It's a safeguard against SQL injection. https://xkcd.com/327/
+"""
+
 # Commit the changes and close the database connection
 conn.commit()
