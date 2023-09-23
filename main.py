@@ -39,5 +39,13 @@ for date, neo_list in neo_data.items():
                     (neo["id"], json.dumps(neo)))
 conn.commit()
 
-pd.read_sql_query('''
-                  select json_extract(data)''')
+df = pd.read_sql_query('''
+                       select json_extract(data, "$.name") as name,
+                       json_extract(data, "$.id") as ID,
+                       json_extract(data, "$.is_potentially_hazardous_asteroid") as potentially_hazardous,
+                       json_extract(data, "$.close_approach_date_full") as close_approach_date
+                       from neo
+                       order by close_approach_date
+                       limit 3;''', conn)
+
+df.to_clipboard()
