@@ -15,10 +15,10 @@ link = link.replace("LAST_WEEK", last_week)
 
 response = requests.get(link)
 data = response.json()
+neo_data = data["near_earth_objects"]
 
-pprint.pprint(data)
-
-conn = sqlite3.connect("NASA_NEO.db")
+pprint.pprint(neo_data)
+conn = sqlite3.connect("TEST.db")
 cursor = conn.cursor()
 
 cursor.executescript('''
@@ -26,8 +26,13 @@ cursor.executescript('''
     DROP TABLE IF EXISTS neo;
 
     CREATE TABLE neo (
-                     id varchar(3)
+                     id varchar(3),
                      data json
     )
 ''')
 
+for date, neo_list in neo_data.items():
+    for neo in neo_list:
+        cursor.execute("INSERT INTO neo VALUES (?, ?)",
+                    (neo["id"], json.dumps(neo)))
+conn.commit()
