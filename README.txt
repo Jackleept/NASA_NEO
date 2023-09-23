@@ -1,0 +1,1 @@
+This is a project to showcase my python, pandas and SQL knowledge.
