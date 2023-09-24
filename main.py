@@ -14,8 +14,12 @@ def load_data():
     response = requests.get(link)
     data = response.json()
     neo_data = data['near_earth_objects']
-
+  
     pprint.pprint(neo_data)
+
+    # out_file = open('neo_data.json', 'w')
+    # json.dump(neo_data, out_file)
+    # out_file.close()
 
     cursor = conn.cursor()
 
@@ -45,7 +49,7 @@ def load_data():
     # ''')
 
     # cursor.execute('INSERT INTO neo VALUES (?)',
-    #                neo_data.items())
+    #                json.dumps(data))
     # conn.commit()
 
 if __name__ == '__main__':
@@ -55,9 +59,10 @@ df = pd.read_sql_query('''SELECT data FROM neo''', conn)
 
 print(df.head(3))
 
-data0 = pd.json_normalize(df['data'],)
+data0 = pd.json_normalize(df['data'])
 
 print(data0)
+
 # df = pd.read_sql_query('''
 #                        select json_extract(data, "$.name") as name,
 #                        json_extract(data, "$.id") as ID,
