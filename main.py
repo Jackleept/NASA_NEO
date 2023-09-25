@@ -59,9 +59,16 @@ df = pd.read_sql_query('''SELECT data FROM neo''', conn)
 
 print(df.head(3))
 
-data0 = pd.json_normalize(df['data'])
+df['data'] = df['data'].apply(json.loads)
+json_df = pd.json_normalize(df['data'])
+df = pd.concat([df, json_df], axis=1)
+print(df)
 
-print(data0)
+df = df.assign(
+    name=lambda row: row['data'].get('name')
+)
+
+print('')
 
 # df = pd.read_sql_query('''
 #                        select json_extract(data, "$.name") as name,
@@ -75,3 +82,23 @@ print(data0)
 # df_hazardous = df[df["potentially_hazardous"]==True]
 
 # df.to_clipboard()
+
+
+"""
+Improvements
+- Productionisation considerations
+    - Update table rather than drop each run
+    - add created_at field (useful for upserting)
+    - generate loop of weeks to collect
+    - assuming a weekly run, make your data collection date aware
+        - So if I ran this on Sept 24th, and then on 25th. I would only want to collect new data for the 25th.
+        - Without this, you risk scraping duplicate data when inserting.
+- Explore some visualisations
+
+Summary of a project:
+- Data ingestion from an API
+- Transform that data and save it
+- Visualise the data. Couple of graphs
+- Have the ability to be updating the saved data as if it was being run daily
+- Have the ability to refresh the data. Maybe load the last year worth of data?
+"""
