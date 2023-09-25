@@ -17,10 +17,6 @@ def load_data():
   
     pprint.pprint(neo_data)
 
-    # out_file = open('neo_data.json', 'w')
-    # json.dump(neo_data, out_file)
-    # out_file.close()
-
     cursor = conn.cursor()
 
     cursor.executescript('''
@@ -39,36 +35,19 @@ def load_data():
                         (neo['id'], json.dumps(neo)))
     conn.commit()
 
-    # cursor.executescript('''
-
-    #     DROP TABLE IF EXISTS neo;
-                         
-    #     CREATE TABLE neo (
-    #                      data json
-    #     )
-    # ''')
-
-    # cursor.execute('INSERT INTO neo VALUES (?)',
-    #                json.dumps(data))
-    # conn.commit()
-
 if __name__ == '__main__':
     load_data()
 
 df = pd.read_sql_query('''SELECT data FROM neo''', conn)
 
+df.to_clipboard()
 print(df.head(3))
 
 df['data'] = df['data'].apply(json.loads)
+
 json_df = pd.json_normalize(df['data'])
 df = pd.concat([df, json_df], axis=1)
 print(df)
-
-df = df.assign(
-    name=lambda row: row['data'].get('name')
-)
-
-print('')
 
 # df = pd.read_sql_query('''
 #                        select json_extract(data, "$.name") as name,
