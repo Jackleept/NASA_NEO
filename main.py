@@ -40,14 +40,13 @@ if __name__ == '__main__':
 
 df = pd.read_sql_query('''SELECT data FROM neo''', conn)
 
-df.to_clipboard()
-print(df.head(3))
-
 df['data'] = df['data'].apply(json.loads)
 
 json_df = pd.json_normalize(df['data'])
 df = pd.concat([df, json_df], axis=1)
 print(df)
+
+
 
 # df = pd.read_sql_query('''
 #                        select json_extract(data, "$.name") as name,
