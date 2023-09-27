@@ -43,7 +43,26 @@ df = pd.read_sql_query('''SELECT data FROM neo''', conn)
 df['data'] = df['data'].apply(json.loads)
 
 json_df = pd.json_normalize(df['data'])
-df = pd.concat([df, json_df], axis=1)
+
+for n in json_df.index.values:
+        json_df['close_approach_data'][n] = {k:v for element in json_df['close_approach_data'][n] for k,v in element.items()}
+
+cad_df = pd.json_normalize(json_df['close_approach_data'])
+
+df = pd.concat([json_df, cad_df, df], axis=1)
+
+df = df.drop(['neo_reference_id', 'close_approach_data', 'links.self',
+        'estimated_diameter.kilometers.estimated_diameter_min',
+        'estimated_diameter.kilometers.estimated_diameter_max',
+        'estimated_diameter.miles.estimated_diameter_min',
+        'estimated_diameter.miles.estimated_diameter_max',
+        'estimated_diameter.feet.estimated_diameter_min',
+        'estimated_diameter.feet.estimated_diameter_max',
+        'close_approach_date', 'epoch_date_close_approach',
+        'relative_velocity.miles_per_hour',
+        'miss_distance.miles'], axis=1
+        )
+
 print(df)
 
 
