@@ -1,11 +1,18 @@
 import requests
 import datetime
-import pprint
 import sqlite3
 import json
 import pandas as pd
 
-last_week = (datetime.date.today() - datetime.timedelta(days=7)).strftime("%Y-%m-%d")
+try:
+    with open('last_executed.txt') as f:
+        last_execution_time = datetime.strptime(f.read(), '%Y-%m-%d')
+except FileNotFoundError:
+        last_execution_time = (datetime.date.today() - datetime.timedelta(days=365))
+
+
+
+last_week = (datetime.date.today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d')
 
 link = f'https://api.nasa.gov/neo/rest/v1/feed?start_date={last_week}&end_date=&api_key=Gt87ibmZefPpnhl8gfz5gWWiTuftebq6IgJBFNdQ'
 conn = sqlite3.connect('NASA_NEO.db')
@@ -14,8 +21,6 @@ def load_data():
     response = requests.get(link)
     data = response.json()
     neo_data = data['near_earth_objects']
-  
-    pprint.pprint(neo_data)
 
     cursor = conn.cursor()
 
@@ -35,23 +40,24 @@ def load_data():
                         (neo['id'], json.dumps(neo)))
     conn.commit()
 
-if __name__ == '__main__':
-    load_data()
+    with open('last_executed.txt', 'w') as f:
+        f.write(str(datetime.date.today()))
 
-df = pd.read_sql_query('''SELECT data FROM neo''', conn)
+def transform():
+    df = pd.read_sql_query('''SELECT data FROM neo''', conn)
 
-df['data'] = df['data'].apply(json.loads)
+    df['data'] = df['data'].apply(json.loads)
 
-json_df = pd.json_normalize(df['data'])
+    json_df = pd.json_normalize(df['data'])
 
-for n in json_df.index.values:
+    for n in json_df.index.values:
         json_df['close_approach_data'][n] = {k:v for element in json_df['close_approach_data'][n] for k,v in element.items()}
 
-cad_df = pd.json_normalize(json_df['close_approach_data'])
+    cad_df = pd.json_normalize(json_df['close_approach_data'])
 
-df = pd.concat([json_df, cad_df, df], axis=1)
+    df = pd.concat([json_df, cad_df, df], axis=1)
 
-df = df.drop(['neo_reference_id', 'close_approach_data', 'links.self',
+    df = df.drop(['neo_reference_id', 'close_approach_data', 'links.self',
         'estimated_diameter.kilometers.estimated_diameter_min',
         'estimated_diameter.kilometers.estimated_diameter_max',
         'estimated_diameter.miles.estimated_diameter_min',
@@ -62,25 +68,16 @@ df = df.drop(['neo_reference_id', 'close_approach_data', 'links.self',
         'relative_velocity.miles_per_hour',
         'miss_distance.miles'], axis=1
         )
+    
+    df = df.rename(columns={
+    'estimated_diameter.meters.estimated_diameter_min': 'estimated_diameter.meters_min',
+    'estimated_diameter.meters.estimated_diameter_max': 'estimated_diameter.meters_max'
+    })
 
-print(df)
-
-
-
-# df = pd.read_sql_query('''
-#                        select json_extract(data, "$.name") as name,
-#                        json_extract(data, "$.id") as ID,
-#                        json_extract(data, "$.is_potentially_hazardous_asteroid") as potentially_hazardous
-#                        from neo;
-#                        ''', conn)
-
-# df["potentially_hazardous"] = df["potentially_hazardous"].astype(bool)
-
-# df_hazardous = df[df["potentially_hazardous"]==True]
-
-# df.to_clipboard()
-
-
+    print(df)
+    df.info()
+if __name__ == '__main__':
+    load_data(), transform()
 """
 Improvements
 - Productionisation considerations
