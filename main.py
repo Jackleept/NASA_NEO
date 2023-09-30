@@ -6,11 +6,14 @@ import pandas as pd
 
 try:
     with open('last_executed.txt') as f:
-        last_execution_time = datetime.strptime(f.read(), '%Y-%m-%d')
+        last_execution_time = datetime.datetime.strptime(f.read(), '%Y-%m-%d').date()
 except FileNotFoundError:
         last_execution_time = (datetime.date.today() - datetime.timedelta(days=365))
 
-
+if str(datetime.date.today() - last_execution_time) != '0:00:00':
+    print('yay')
+else:
+    print('nay')
 
 last_week = (datetime.date.today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d')
 
