@@ -10,10 +10,27 @@ try:
 except FileNotFoundError:
         last_execution_time = (datetime.date.today() - datetime.timedelta(days=365))
 
-if str(datetime.date.today() - last_execution_time) != '0:00:00':
-    print('yay')
-else:
-    print('nay')
+delta = (datetime.date.today() - last_execution_time).days
+
+links_a = []
+links_b = []
+
+if delta % 7 != 0:
+    end_date = datetime.date.today()
+    start_date = (end_date - datetime.timedelta(days=delta%7)).strftime('%Y-%m-%d')
+    end_date = end_date.strftime('%Y-%m-%d')
+    link = f'https://api.nasa.gov/neo/rest/v1/feed?start_date={start_date}&end_date={end_date}&api_key=Gt87ibmZefPpnhl8gfz5gWWiTuftebq6IgJBFNdQ'
+    links_a.append(link)
+
+for x in range(delta%7, delta+7, 8):
+    end_date = (datetime.date.today() - datetime.timedelta(days=x+1))
+    start_date = (end_date - datetime.timedelta(days=7)).strftime('%Y-%m-%d')
+    end_date = end_date.strftime('%Y-%m-%d')
+    link = f'https://api.nasa.gov/neo/rest/v1/feed?start_date={start_date}&end_date={end_date}&api_key=Gt87ibmZefPpnhl8gfz5gWWiTuftebq6IgJBFNdQ'
+    links_b.append(link)
+
+links = links_a + links_b
+links
 
 last_week = (datetime.date.today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d')
 
@@ -21,6 +38,7 @@ link = f'https://api.nasa.gov/neo/rest/v1/feed?start_date={last_week}&end_date=&
 conn = sqlite3.connect('NASA_NEO.db')
 
 def load_data():
+    
     response = requests.get(link)
     data = response.json()
     neo_data = data['near_earth_objects']
