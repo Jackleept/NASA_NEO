@@ -4,65 +4,65 @@ import sqlite3
 import json
 import pandas as pd
 
-try:
-    with open('last_executed.txt') as f:
-        last_execution_time = datetime.datetime.strptime(f.read(), '%Y-%m-%d').date()
-except FileNotFoundError:
-        last_execution_time = (datetime.date.today() - datetime.timedelta(days=365))
-
-delta = (datetime.date.today() - last_execution_time).days
-
-links_a = []
-links_b = []
-
-if delta % 7 != 0:
-    end_date = datetime.date.today()
-    start_date = (end_date - datetime.timedelta(days=delta%7)).strftime('%Y-%m-%d')
-    end_date = end_date.strftime('%Y-%m-%d')
-    link = f'https://api.nasa.gov/neo/rest/v1/feed?start_date={start_date}&end_date={end_date}&api_key=Gt87ibmZefPpnhl8gfz5gWWiTuftebq6IgJBFNdQ'
-    links_a.append(link)
-
-for x in range(delta%7, delta+7, 8):
-    end_date = (datetime.date.today() - datetime.timedelta(days=x+1))
-    start_date = (end_date - datetime.timedelta(days=7)).strftime('%Y-%m-%d')
-    end_date = end_date.strftime('%Y-%m-%d')
-    link = f'https://api.nasa.gov/neo/rest/v1/feed?start_date={start_date}&end_date={end_date}&api_key=Gt87ibmZefPpnhl8gfz5gWWiTuftebq6IgJBFNdQ'
-    links_b.append(link)
-
-links = links_a + links_b
-links
-
-last_week = (datetime.date.today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d')
-
-link = f'https://api.nasa.gov/neo/rest/v1/feed?start_date={last_week}&end_date=&api_key=Gt87ibmZefPpnhl8gfz5gWWiTuftebq6IgJBFNdQ'
 conn = sqlite3.connect('NASA_NEO.db')
+
+def extract():
+    try:
+        with open('last_executed.txt') as f:
+            last_execution_date = datetime.datetime.strptime(f.read(), '%Y-%m-%d').date()
+    except FileNotFoundError:
+            last_execution_date = (datetime.date.today() - datetime.timedelta(days=365))
+
+    delta = (datetime.date.today() - last_execution_date).days
+
+    links_a = []
+    links_b = []
+
+    if delta % 7 != 0:
+        end_date = datetime.date.today()
+        start_date = (end_date - datetime.timedelta(days=delta%7)).strftime('%Y-%m-%d')
+        end_date = end_date.strftime('%Y-%m-%d')
+        link = f'https://api.nasa.gov/neo/rest/v1/feed?start_date={start_date}&end_date={end_date}&api_key=Gt87ibmZefPpnhl8gfz5gWWiTuftebq6IgJBFNdQ'
+        links_a.append(link)
+
+    for x in range(delta%7, delta+7, 8):
+        end_date = (datetime.date.today() - datetime.timedelta(days=x+1))
+        start_date = (end_date - datetime.timedelta(days=7)).strftime('%Y-%m-%d')
+        end_date = end_date.strftime('%Y-%m-%d')
+        link = f'https://api.nasa.gov/neo/rest/v1/feed?start_date={start_date}&end_date={end_date}&api_key=Gt87ibmZefPpnhl8gfz5gWWiTuftebq6IgJBFNdQ'
+        links_b.append(link)
+
+    global links 
+    links = links_a + links_b
 
 def load_data():
     
-    response = requests.get(link)
-    data = response.json()
-    neo_data = data['near_earth_objects']
+    global links
 
-    cursor = conn.cursor()
+    for link in links:
+    
+        response = requests.get(link)
+        data = response.json()
+        neo_data = data['near_earth_objects']
 
-    cursor.executescript('''
+        cursor = conn.cursor()
 
-        DROP TABLE IF EXISTS neo;
+        cursor.executescript('''
 
-        CREATE TABLE neo (
-                        id text,
-                        data json
-        )
-    ''')
+             CREATE TABLE IF NOT EXISTS neo (
+                            id text,
+                            data json
+            )
+        ''')
 
-    for date, neo_list in neo_data.items():
-        for neo in neo_list:
-            cursor.execute('INSERT INTO neo VALUES (?, ?)',
-                        (neo['id'], json.dumps(neo)))
-    conn.commit()
+        for date, neo_list in neo_data.items():
+            for neo in neo_list:
+                cursor.execute('INSERT INTO neo VALUES (?, ?)',
+                            (neo['id'], json.dumps(neo)))
+        conn.commit()
 
-    with open('last_executed.txt', 'w') as f:
-        f.write(str(datetime.date.today()))
+        with open('last_executed.txt', 'w') as f:
+            f.write(str(datetime.date.today()))
 
 def transform():
     df = pd.read_sql_query('''SELECT data FROM neo''', conn)
@@ -97,8 +97,11 @@ def transform():
 
     print(df)
     df.info()
+
+    print(df.tail(5))
+
 if __name__ == '__main__':
-    load_data(), transform()
+    extract(), load_data(), transform()
 """
 Improvements
 - Productionisation considerations
