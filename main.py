@@ -5,8 +5,9 @@ import json
 import pandas as pd
 
 conn = sqlite3.connect('NASA_NEO.db')
+cursor = conn.cursor()
 
-def extract():
+def delta():
     try:
         with open('last_executed.txt') as f:
             last_execution_date = datetime.datetime.strptime(f.read(), '%Y-%m-%d').date()
@@ -15,37 +16,44 @@ def extract():
 
     delta = (datetime.date.today() - last_execution_date).days
 
-    links_a = []
-    links_b = []
+    return delta
 
+def get_links(delta):
+    if delta == 0:
+        return []
+
+    links = []
+    
     if delta % 7 != 0:
         end_date = datetime.date.today()
         start_date = (end_date - datetime.timedelta(days=delta%7)).strftime('%Y-%m-%d')
         end_date = end_date.strftime('%Y-%m-%d')
         link = f'https://api.nasa.gov/neo/rest/v1/feed?start_date={start_date}&end_date={end_date}&api_key=Gt87ibmZefPpnhl8gfz5gWWiTuftebq6IgJBFNdQ'
-        links_a.append(link)
+        links.append(link)
 
-    for x in range(delta%7, delta+7, 8):
-        end_date = (datetime.date.today() - datetime.timedelta(days=x+1))
+    if delta == 7:
+        end_date = datetime.date.today()
         start_date = (end_date - datetime.timedelta(days=7)).strftime('%Y-%m-%d')
         end_date = end_date.strftime('%Y-%m-%d')
         link = f'https://api.nasa.gov/neo/rest/v1/feed?start_date={start_date}&end_date={end_date}&api_key=Gt87ibmZefPpnhl8gfz5gWWiTuftebq6IgJBFNdQ'
-        links_b.append(link)
+        links.append(link)
+    else:
+        for x in range(delta%7, delta, 7):
+            end_date = (datetime.date.today() - datetime.timedelta(days=x+1))
+            start_date = (end_date - datetime.timedelta(days=7)).strftime('%Y-%m-%d')
+            end_date = end_date.strftime('%Y-%m-%d')
+            link = f'https://api.nasa.gov/neo/rest/v1/feed?start_date={start_date}&end_date={end_date}&api_key=Gt87ibmZefPpnhl8gfz5gWWiTuftebq6IgJBFNdQ'
+            links.append(link)   
 
-    global links 
-    links = links_a + links_b
+    return links
 
-def load_data():
-    
-    global links
+def extract_load(links):
 
     for link in links:
     
         response = requests.get(link)
         data = response.json()
         neo_data = data['near_earth_objects']
-
-        cursor = conn.cursor()
 
         cursor.executescript('''
 
@@ -100,8 +108,11 @@ def transform():
 
     print(df.tail(5))
 
+delta = delta()
+links = get_links(delta)
+
 if __name__ == '__main__':
-    extract(), load_data(), transform()
+    extract_load(links), transform()
 """
 Improvements
 - Productionisation considerations
