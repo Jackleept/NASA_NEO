@@ -7,50 +7,49 @@ import pandas as pd
 conn = sqlite3.connect('NASA_NEO.db')
 cursor = conn.cursor()
 
+
 def delta():
     try:
         with open('last_executed.txt') as f:
             last_execution_date = datetime.datetime.strptime(f.read(), '%Y-%m-%d').date()
     except FileNotFoundError:
-            last_execution_date = (datetime.date.today() - datetime.timedelta(days=365))
+        last_execution_date = (datetime.date.today() - datetime.timedelta(days=365))
 
     delta = (datetime.date.today() - last_execution_date).days
 
     return delta
+
 
 def get_links(delta):
     if delta == 0:
         return []
 
     links = []
-    
-    if delta % 7 != 0:
-        end_date = datetime.date.today()
-        start_date = (end_date - datetime.timedelta(days=delta%7)).strftime('%Y-%m-%d')
+
+    def build_link(x, y):
+        end_date = x
+        start_date = (end_date - datetime.timedelta(days=y)).strftime('%Y-%m-%d')
         end_date = end_date.strftime('%Y-%m-%d')
         link = f'https://api.nasa.gov/neo/rest/v1/feed?start_date={start_date}&end_date={end_date}&api_key=Gt87ibmZefPpnhl8gfz5gWWiTuftebq6IgJBFNdQ'
         links.append(link)
+
+    if delta % 7 != 0:
+        build_link(datetime.date.today(), delta%7)
 
     if delta == 7:
-        end_date = datetime.date.today()
-        start_date = (end_date - datetime.timedelta(days=7)).strftime('%Y-%m-%d')
-        end_date = end_date.strftime('%Y-%m-%d')
-        link = f'https://api.nasa.gov/neo/rest/v1/feed?start_date={start_date}&end_date={end_date}&api_key=Gt87ibmZefPpnhl8gfz5gWWiTuftebq6IgJBFNdQ'
-        links.append(link)
+        build_link(datetime.date.today(), 7)
+
     else:
         for x in range(delta%7, delta, 7):
-            end_date = (datetime.date.today() - datetime.timedelta(days=x+1))
-            start_date = (end_date - datetime.timedelta(days=7)).strftime('%Y-%m-%d')
-            end_date = end_date.strftime('%Y-%m-%d')
-            link = f'https://api.nasa.gov/neo/rest/v1/feed?start_date={start_date}&end_date={end_date}&api_key=Gt87ibmZefPpnhl8gfz5gWWiTuftebq6IgJBFNdQ'
-            links.append(link)   
+            build_link((datetime.date.today() - datetime.timedelta(days=x+1)), 6)
 
     return links
+
 
 def extract_load(links):
 
     for link in links:
-    
+
         response = requests.get(link)
         data = response.json()
         neo_data = data['near_earth_objects']
@@ -66,11 +65,12 @@ def extract_load(links):
         for date, neo_list in neo_data.items():
             for neo in neo_list:
                 cursor.execute('INSERT INTO neo VALUES (?, ?)',
-                            (neo['id'], json.dumps(neo)))
+                               (neo['id'], json.dumps(neo)))
         conn.commit()
 
         with open('last_executed.txt', 'w') as f:
             f.write(str(datetime.date.today()))
+
 
 def transform():
     df = pd.read_sql_query('''SELECT data FROM neo''', conn)
@@ -80,33 +80,33 @@ def transform():
     json_df = pd.json_normalize(df['data'])
 
     for n in json_df.index.values:
-        json_df['close_approach_data'][n] = {k:v for element in json_df['close_approach_data'][n] for k,v in element.items()}
+        json_df['close_approach_data'][n] = {k: v for element in json_df['close_approach_data'][n]
+                                             for k, v in element.items()}
 
     cad_df = pd.json_normalize(json_df['close_approach_data'])
 
     df = pd.concat([json_df, cad_df, df], axis=1)
 
     df = df.drop(['neo_reference_id', 'close_approach_data', 'links.self',
-        'estimated_diameter.kilometers.estimated_diameter_min',
-        'estimated_diameter.kilometers.estimated_diameter_max',
-        'estimated_diameter.miles.estimated_diameter_min',
-        'estimated_diameter.miles.estimated_diameter_max',
-        'estimated_diameter.feet.estimated_diameter_min',
-        'estimated_diameter.feet.estimated_diameter_max',
-        'close_approach_date', 'epoch_date_close_approach',
-        'relative_velocity.miles_per_hour',
-        'miss_distance.miles'], axis=1
-        )
-    
+                  'estimated_diameter.kilometers.estimated_diameter_min',
+                  'estimated_diameter.kilometers.estimated_diameter_max',
+                  'estimated_diameter.miles.estimated_diameter_min',
+                  'estimated_diameter.miles.estimated_diameter_max',
+                  'estimated_diameter.feet.estimated_diameter_min',
+                  'estimated_diameter.feet.estimated_diameter_max',
+                  'close_approach_date', 'epoch_date_close_approach',
+                  'relative_velocity.miles_per_hour',
+                  'miss_distance.miles'], axis=1
+                 )
+
     df = df.rename(columns={
-    'estimated_diameter.meters.estimated_diameter_min': 'estimated_diameter.meters_min',
-    'estimated_diameter.meters.estimated_diameter_max': 'estimated_diameter.meters_max'
-    })
+        'estimated_diameter.meters.estimated_diameter_min': 'estimated_diameter.meters_min',
+        'estimated_diameter.meters.estimated_diameter_max': 'estimated_diameter.meters_max'
+        })
 
-    print(df)
     df.info()
-
     print(df.tail(5))
+
 
 delta = delta()
 links = get_links(delta)
