@@ -112,6 +112,8 @@ def transform():
         ]
 
     df[cols] = df[cols].astype('float')
+    
+    df['close_approach_date_full'] = df['close_approach_date_full'].astype('datetime64')
 
     df.info()
     print(df.tail(5))
