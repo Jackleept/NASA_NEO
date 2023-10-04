@@ -13,7 +13,7 @@ def delta():
         with open('last_executed.txt') as f:
             last_execution_date = datetime.datetime.strptime(f.read(), '%Y-%m-%d').date()
     except FileNotFoundError:
-        last_execution_date = (datetime.date.today() - datetime.timedelta(days=365))
+        last_execution_date = (datetime.date.today() - datetime.timedelta(days=5))
 
     delta = (datetime.date.today() - last_execution_date).days
 
@@ -52,7 +52,7 @@ def extract_load(links):
         cursor.executescript('''
 
              CREATE TABLE IF NOT EXISTS neo (
-                            id text,
+                            date_added datetime,
                             data json
             )
         ''')
@@ -60,7 +60,7 @@ def extract_load(links):
         for date, neo_list in neo_data.items():
             for neo in neo_list:
                 cursor.execute('INSERT INTO neo VALUES (?, ?)',
-                               (neo['id'], json.dumps(neo)))
+                               (datetime.datetime.today(), json.dumps(neo)))
         conn.commit()
 
         with open('last_executed.txt', 'w') as f:
@@ -68,7 +68,7 @@ def extract_load(links):
 
 
 def transform():
-    df = pd.read_sql_query('''SELECT data FROM neo''', conn)
+    df = pd.read_sql_query('''SELECT * FROM neo''', conn)
 
     df['data'] = df['data'].apply(json.loads)
 
@@ -95,9 +95,23 @@ def transform():
                  )
 
     df = df.rename(columns={
-        'estimated_diameter.meters.estimated_diameter_min': 'estimated_diameter.meters_min',
-        'estimated_diameter.meters.estimated_diameter_max': 'estimated_diameter.meters_max'
+        'estimated_diameter.meters.estimated_diameter_min': 'estimated_diameter_meters_min',
+        'estimated_diameter.meters.estimated_diameter_max': 'estimated_diameter_meters_max',
+        'relative_velocity.kilometers_per_second': 'relative_velocity_kilometers_per_second',
+        'relative_velocity.kilometers_per_hour': 'relative_velocity_kilometers_per_hour',
+        'miss_distance.astronomical': 'miss_distance_astronomical',
+        'miss_distance.lunar': 'miss_distance_lunar',
+        'miss_distance.kilometers': 'miss_distance_kilometers',
         })
+
+    cols = ['relative_velocity_kilometers_per_second',
+        'relative_velocity_kilometers_per_hour',
+        'miss_distance_astronomical',
+        'miss_distance_lunar',
+        'miss_distance_kilometers'
+        ]
+
+    df[cols] = df[cols].astype('float')
 
     df.info()
     print(df.tail(5))
