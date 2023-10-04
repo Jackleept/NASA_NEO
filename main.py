@@ -27,21 +27,16 @@ def get_links(delta):
     links = []
 
     def build_link(x, y):
-        end_date = x
-        start_date = (end_date - datetime.timedelta(days=y)).strftime('%Y-%m-%d')
-        end_date = end_date.strftime('%Y-%m-%d')
+        end_date = x.strftime('%Y-%m-%d')
+        start_date = (datetime.date.today() - datetime.timedelta(days=y)).strftime('%Y-%m-%d')
         link = f'https://api.nasa.gov/neo/rest/v1/feed?start_date={start_date}&end_date={end_date}&api_key=Gt87ibmZefPpnhl8gfz5gWWiTuftebq6IgJBFNdQ'
         links.append(link)
 
     if delta % 7 != 0:
-        build_link(datetime.date.today(), delta%7)
+        build_link(datetime.date.today(), delta%7-1)
 
-    if delta == 7:
-        build_link(datetime.date.today(), 7)
-
-    else:
-        for x in range(delta%7, delta, 7):
-            build_link((datetime.date.today() - datetime.timedelta(days=x+1)), 6)
+    for x in range(delta%7, delta, 7):
+        build_link((datetime.date.today() - datetime.timedelta(days=x)), x+6)
 
     return links
 
