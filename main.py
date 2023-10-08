@@ -3,6 +3,8 @@ import datetime
 import sqlite3
 import json
 import pandas as pd
+from bokeh.plotting import figure, show
+from bokeh.models import ColumnDataSource
 
 conn = sqlite3.connect('NASA_NEO.db')
 cursor = conn.cursor()
@@ -113,32 +115,40 @@ def transform():
 
     df[cols] = df[cols].astype('float')
     
-    df['close_approach_date_full'] = df['close_approach_date_full'].astype('datetime64')
+    df['close_approach_date_full'] = df['close_approach_date_full'].astype('datetime64[ns]')
 
-    df.info()
-    print(df.tail(5))
+    df['estimated_diameter_meters_mean'] = df[['estimated_diameter_meters_max',
+                                               'estimated_diameter_meters_min']].mean(axis=1)
+    
+    return df
 
+def plot1(df):
+    data = df
+    source = ColumnDataSource(data)
+
+    p = figure(x_axis_label=r'\[\text{ relative velocity }kms^{-1}\]', y_axis_label=r'\[\text{ estimated diameter min/max }(m)\]')
+
+    p.circle(x='relative_velocity_kilometers_per_second', y='estimated_diameter_meters_max', source=source, fill_color='red')
+    p.circle(x='relative_velocity_kilometers_per_second', y='estimated_diameter_meters_min', source=source, fill_color='green')
+
+    show(p)
+
+def plot2(df):
+    data = df
+    source = ColumnDataSource(data)
+
+    p = figure(x_axis_label=r'\[\text{ mean estimated diameter }(m)\]', y_axis_label=r'\[\text{ absolute magnitude }\]')
+
+    p.circle(x='estimated_diameter_meters_mean', y='absolute_magnitude_h', source=source)
+
+    show(p)
+    
 
 delta = delta()
 links = get_links(delta)
 
 if __name__ == '__main__':
-    extract_load(links), transform()
-"""
-Improvements
-- Productionisation considerations
-    - Update table rather than drop each run
-    - add created_at field (useful for upserting)
-    - generate loop of weeks to collect
-    - assuming a weekly run, make your data collection date aware
-        - So if I ran this on Sept 24th, and then on 25th. I would only want to collect new data for the 25th.
-        - Without this, you risk scraping duplicate data when inserting.
-- Explore some visualisations
-
-Summary of a project:
-- Data ingestion from an API
-- Transform that data and save it
-- Visualise the data. Couple of graphs
-- Have the ability to be updating the saved data as if it was being run daily
-- Have the ability to refresh the data. Maybe load the last year worth of data?
-"""
+    extract_load(links)
+    df = transform()
+    plot1(df)
+    plot2(df)
