@@ -14,10 +14,10 @@ def drop_table():
 
     cursor = conn.cursor()
 
-    cursor.executescript('''                   
+    cursor.executescript('''
 
         DROP TABLE IF EXISTS neo
-                         
+
     ''')
 
     conn.commit()
