@@ -107,31 +107,37 @@ def transform():
         })
 
     cols = ['relative_velocity_kilometers_per_second',
-        'relative_velocity_kilometers_per_hour',
-        'miss_distance_astronomical',
-        'miss_distance_lunar',
-        'miss_distance_kilometers'
-        ]
+            'relative_velocity_kilometers_per_hour',
+            'miss_distance_astronomical',
+            'miss_distance_lunar',
+            'miss_distance_kilometers'
+            ]
 
     df[cols] = df[cols].astype('float')
-    
+
     df['close_approach_date_full'] = df['close_approach_date_full'].astype('datetime64[ns]')
 
     df['estimated_diameter_meters_mean'] = df[['estimated_diameter_meters_max',
                                                'estimated_diameter_meters_min']].mean(axis=1)
-    
+
     return df
+
 
 def plot1(df):
     data = df
     source = ColumnDataSource(data)
 
-    p = figure(x_axis_label=r'\[\text{ relative velocity }kms^{-1}\]', y_axis_label=r'\[\text{ estimated diameter min/max }(m)\]')
+    p = figure(x_axis_label=r'\[\text{ relative velocity }kms^{-1}\]',
+               y_axis_label=r'\[\text{ estimated diameter min/max }(m)\]')
 
-    p.circle(x='relative_velocity_kilometers_per_second', y='estimated_diameter_meters_max', source=source, fill_color='red')
-    p.circle(x='relative_velocity_kilometers_per_second', y='estimated_diameter_meters_min', source=source, fill_color='green')
+    p.circle(x='relative_velocity_kilometers_per_second',
+             y='estimated_diameter_meters_max', source=source, fill_color='red')
+
+    p.circle(x='relative_velocity_kilometers_per_second',
+             y='estimated_diameter_meters_min', source=source, fill_color='green')
 
     show(p)
+
 
 def plot2(df):
     data = df
@@ -142,7 +148,7 @@ def plot2(df):
     p.circle(x='estimated_diameter_meters_mean', y='absolute_magnitude_h', source=source)
 
     show(p)
-    
+
 
 delta = delta()
 links = get_links(delta)
