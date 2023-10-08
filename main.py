@@ -10,16 +10,38 @@ conn = sqlite3.connect('NASA_NEO.db')
 cursor = conn.cursor()
 
 
+def drop_table():
+
+    cursor = conn.cursor()
+
+    cursor.executescript('''                   
+
+        DROP TABLE IF EXISTS neo
+                         
+    ''')
+
+    conn.commit()
+
+
 def delta():
     try:
         with open('last_executed.txt') as f:
-            last_execution_date = datetime.datetime.strptime(f.read(), '%Y-%m-%d').date()
+            while True:
+                refresh = input('Would you like to refresh your data? (y/n)')
+                if refresh == 'n':
+                    last_execution_date = datetime.datetime.strptime(f.read(), '%Y-%m-%d').date()
+                    delta = (datetime.date.today() - last_execution_date).days
+                    return delta
+                if refresh == 'y':
+                    drop_table()
+                    delta = int(input('How many days of data would you like to load?'))
+                    return delta
+                else:
+                    print('Please try again')
+
     except FileNotFoundError:
-        last_execution_date = (datetime.date.today() - datetime.timedelta(days=5))
-
-    delta = (datetime.date.today() - last_execution_date).days
-
-    return delta
+        delta = int(input('How many days of data would you like to load?'))
+        return delta
 
 
 def get_links(delta):
