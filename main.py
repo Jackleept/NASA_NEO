@@ -146,8 +146,8 @@ def transform():
 
 
 def plot1(df):
-    data = df
-    source = ColumnDataSource(data)
+    data1 = df
+    source = ColumnDataSource(data1)
 
     p = figure(x_axis_label=r'\[\text{ relative velocity }kms^{-1}\]',
                y_axis_label=r'\[\text{ estimated diameter min/max }(m)\]')
@@ -162,8 +162,8 @@ def plot1(df):
 
 
 def plot2(df):
-    data = df
-    source = ColumnDataSource(data)
+    data2 = df
+    source = ColumnDataSource(data2)
 
     p = figure(x_axis_label=r'\[\text{ mean estimated diameter }(m)\]', y_axis_label=r'\[\text{ absolute magnitude }\]')
 
